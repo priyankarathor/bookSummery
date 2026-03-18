@@ -40,8 +40,16 @@ const dashboardSearch = [
     route: "/payments",
     keywords: ["payments", "money"],
   },
-  {
+   {
     id: "page-5",
+    title: "Sales",
+    description: "Track your revenue",
+    type: "page",
+    route: "/Sales",
+    keywords: ["Total Sales", "Sales Transactions"],
+  },
+  {
+    id: "page-6",
     title: "Customers",
     description: "Customer management",
     type: "page",
@@ -49,7 +57,7 @@ const dashboardSearch = [
     keywords: ["customer", "buyer"],
   },
   {
-    id: "page-6",
+    id: "page-7",
     title: "Reports",
     description: "Analytics and reports",
     type: "page",
@@ -57,7 +65,7 @@ const dashboardSearch = [
     keywords: ["analytics", "data"],
   },
   {
-    id: "page-7",
+    id: "page-8",
     title: "Return Products",
     description: "Manage returned products",
     type: "page",
@@ -571,7 +579,7 @@ export default function SearchOverlay({ open, onClose, anchorRef }) {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        {["Dashboard", "Orders", "Inventory", "Reports", "Payments", "Customers"].map(
+                        {["Dashboard", "Orders", "Inventory", "Reports", "Sales", "Payments", "Customers"].map(
                           (item, i) => (
                             <motion.button
                               key={item}

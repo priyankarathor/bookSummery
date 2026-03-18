@@ -150,7 +150,17 @@ export default function Sidebar({
             closeSidebar={closeSidebar}
           />
 
-          <Dropdown
+
+           <MenuItem
+           icon={<HiOutlineShoppingCart />}
+            label="Orders"
+            href="/order"
+            open={sidebarExpanded}
+            active={pathname === "/order"}
+            closeSidebar={closeSidebar}
+          />
+
+          {/* <Dropdown
             icon={<HiOutlineShoppingCart />}
             label="Orders"
             sidebarOpen={sidebarExpanded}
@@ -173,7 +183,7 @@ export default function Sidebar({
               active={pathname === "/order/create"}
               closeSidebar={closeSidebar}
             />
-          </Dropdown>
+          </Dropdown> */}
 
           <MenuItem
             icon={<HiOutlineArrowPath />}

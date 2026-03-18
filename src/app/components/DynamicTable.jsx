@@ -21,6 +21,9 @@ export default function DynamicTable({
   title = "Records",
   tableKeys = null,
   loading = false,
+  hideTopHeader = false,
+  hideCategoryFilter = false,
+  hideDateFilter = false,
 }) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [dateMode, setDateMode] = useState("All");
@@ -52,14 +55,25 @@ export default function DynamicTable({
     };
   }, [selectedRow]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [data]);
+
   const visibleKeys = useMemo(() => {
     if (Array.isArray(tableKeys) && tableKeys.length > 0) return tableKeys;
     if (Array.isArray(headers) && headers.length > 0) return headers;
-    if (data?.length > 0 && typeof data[0] === "object" && data[0] !== null) {
-      return Object.keys(data[0]);
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === "object") {
+      return Object.keys(data[0]).filter(
+        (key) =>
+          key !== "id" &&
+          !key.endsWith("Raw") &&
+          !key.startsWith("_") &&
+          key !== filterKey &&
+          key !== dateKey
+      );
     }
     return [];
-  }, [tableKeys, headers, data]);
+  }, [tableKeys, headers, data, filterKey, dateKey]);
 
   const categories = useMemo(() => {
     const unique = Array.from(
@@ -76,6 +90,7 @@ export default function DynamicTable({
   }, [data, filterKey]);
 
   function filterByDate(itemDate) {
+    if (hideDateFilter) return true;
     if (!itemDate || dateMode === "All") return true;
 
     const today = new Date();
@@ -90,7 +105,12 @@ export default function DynamicTable({
     if (dateMode === "Week") {
       const weekAgo = new Date();
       weekAgo.setDate(today.getDate() - 7);
-      return date >= weekAgo && date <= today;
+      weekAgo.setHours(0, 0, 0, 0);
+
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      return date >= weekAgo && date <= todayEnd;
     }
 
     if (dateMode === "Custom") {
@@ -114,11 +134,13 @@ export default function DynamicTable({
     const searchText = debouncedSearch.trim().toLowerCase();
 
     return data
-      .filter((item) =>
-        selectedCategory === "All"
-          ? true
-          : item?.[filterKey] === selectedCategory
-      )
+      .filter((item) => {
+        if (hideCategoryFilter) return true;
+        if (selectedCategory === "All") return true;
+
+        return String(item?.[filterKey] || "").toLowerCase() ===
+          String(selectedCategory || "").toLowerCase();
+      })
       .filter((item) => filterByDate(item?.[dateKey]))
       .filter((item) => {
         if (!searchText) return true;
@@ -140,6 +162,8 @@ export default function DynamicTable({
     toDate,
     debouncedSearch,
     visibleKeys,
+    hideCategoryFilter,
+    hideDateFilter,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
@@ -163,166 +187,181 @@ export default function DynamicTable({
       : Array.from({ length: skeletonColumns }, (_, i) => `col-${i}`);
 
   const hasActiveFilters =
-    selectedCategory !== "All" ||
-    dateMode !== "All" ||
-    fromDate ||
-    toDate ||
+    (!hideCategoryFilter && selectedCategory !== "All") ||
+    (!hideDateFilter && dateMode !== "All") ||
+    (!hideDateFilter && fromDate) ||
+    (!hideDateFilter && toDate) ||
     search;
 
+  const showFilters = !hideTopHeader;
+  const showClear =
+    hasActiveFilters &&
+    (showFilters || search || !hideCategoryFilter || !hideDateFilter);
+
   return (
-   <div className="w-full max-w-[1450px] mx-auto mt-5 space-y-8 sm:space-y-10 lg:space-y-4 px-4 sm:px-6 lg:px-10 xl:px-4 py-8 sm:py-3">
+    <div className="w-full max-w-[1450px] mx-auto mt-0 space-y-4 px-0 py-0">
       {/* Top Header */}
-      <div className="rounded-3xl border border-slate-200 bg-white/95 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-col gap-5 p-5 md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-2xl bg-[#fff4e5] flex items-center justify-center">
-                  <SlidersHorizontal size={18} className="text-[#FF9900]" />
+      {!hideTopHeader && (
+        <div className="rounded-3xl border border-slate-200 bg-white/95 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+          <div className="flex flex-col gap-5 p-5 md:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-2xl bg-[#fff4e5] flex items-center justify-center">
+                    <SlidersHorizontal size={18} className="text-[#FF9900]" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-900">
+                      {title}
+                    </h1>
+                    <p className="text-sm text-slate-500">
+                      Manage and explore your records with smart filters
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-                  <p className="text-sm text-slate-500">
-                    Manage and explore your records with smart filters
-                  </p>
-                </div>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 border border-slate-200 min-w-[220px]">
+                {loading ? (
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-3 w-28 rounded bg-slate-200" />
+                    <div className="h-5 w-16 rounded bg-slate-300" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+                      Total Results
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">
+                      {filteredData.length}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 border border-slate-200 min-w-[220px]">
-              {loading ? (
-                <div className="space-y-2 animate-pulse">
-                  <div className="h-3 w-28 rounded bg-slate-200" />
-                  <div className="h-5 w-16 rounded bg-slate-300" />
+            {/* Filters */}
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-1 flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#FF9900] focus-within:ring-4 focus-within:ring-[#FF9900]/10 transition-all min-w-[260px] flex-1 sm:flex-none sm:w-[300px]">
+                  <Search size={18} className="text-slate-400" />
+                  <input
+                    placeholder="Search records..."
+                    value={search}
+                    disabled={loading}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
+                    className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+                  />
                 </div>
-              ) : (
-                <>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
-                    Total Results
-                  </p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {filteredData.length}
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
 
-          {/* Filters */}
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-1 flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#FF9900] focus-within:ring-4 focus-within:ring-[#FF9900]/10 transition-all min-w-[260px] flex-1 sm:flex-none sm:w-[300px]">
-                <Search size={18} className="text-slate-400" />
-                <input
-                  placeholder="Search records..."
-                  value={search}
-                  disabled={loading}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
-                />
+                {!hideCategoryFilter && (
+                  <div className="flex items-center rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
+                    <Filter size={16} className="text-slate-400" />
+                    <select
+                      value={selectedCategory}
+                      disabled={loading}
+                      onChange={(e) => {
+                        setSelectedCategory(e.target.value);
+                        setPage(1);
+                      }}
+                      className="bg-transparent px-2 text-sm text-slate-700 outline-none disabled:cursor-not-allowed"
+                    >
+                      {categories.map((cat) => (
+                        <option key={String(cat)} value={cat}>
+                          {String(cat)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {!hideDateFilter && (
+                  <>
+                    <select
+                      value={dateMode}
+                      disabled={loading}
+                      onChange={(e) => {
+                        setDateMode(e.target.value);
+                        setFromDate("");
+                        setToDate("");
+                        setPage(1);
+                      }}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none disabled:cursor-not-allowed"
+                    >
+                      <option value="All">All Dates</option>
+                      <option value="Today">Today</option>
+                      <option value="Week">Last 7 Days</option>
+                      <option value="Custom">Custom Range</option>
+                    </select>
+
+                    {dateMode === "Custom" && (
+                      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <input
+                          type="date"
+                          value={fromDate}
+                          disabled={loading}
+                          onChange={(e) => {
+                            setFromDate(e.target.value);
+                            setPage(1);
+                          }}
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
+                        />
+                        <span className="text-sm text-slate-400">to</span>
+                        <input
+                          type="date"
+                          value={toDate}
+                          disabled={loading}
+                          onChange={(e) => {
+                            setToDate(e.target.value);
+                            setPage(1);
+                          }}
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
-              <div className="flex items-center rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
-                <Filter size={16} className="text-slate-400" />
+              <div className="flex items-center gap-3">
                 <select
-                  value={selectedCategory}
+                  value={rowsPerPage}
                   disabled={loading}
                   onChange={(e) => {
-                    setSelectedCategory(e.target.value);
+                    setRowsPerPage(Number(e.target.value));
                     setPage(1);
                   }}
-                  className="bg-transparent px-2 text-sm text-slate-700 outline-none disabled:cursor-not-allowed"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none disabled:cursor-not-allowed"
                 >
-                  {categories.map((cat) => (
-                    <option key={String(cat)} value={cat}>
-                      {String(cat)}
-                    </option>
-                  ))}
+                  <option value={5}>5 rows</option>
+                  <option value={10}>10 rows</option>
+                  <option value={20}>20 rows</option>
                 </select>
+
+                {showClear && (
+                  <button
+                    onClick={() => {
+                      setSelectedCategory("All");
+                      setDateMode("All");
+                      setFromDate("");
+                      setToDate("");
+                      setSearch("");
+                      setPage(1);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-500 transition hover:bg-red-100"
+                  >
+                    <X size={16} />
+                    Clear
+                  </button>
+                )}
               </div>
-
-              <select
-                value={dateMode}
-                disabled={loading}
-                onChange={(e) => {
-                  setDateMode(e.target.value);
-                  setFromDate("");
-                  setToDate("");
-                  setPage(1);
-                }}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none disabled:cursor-not-allowed"
-              >
-                <option value="All">All Dates</option>
-                <option value="Today">Today</option>
-                <option value="Week">Last 7 Days</option>
-                <option value="Custom">Custom Range</option>
-              </select>
-
-              {dateMode === "Custom" && (
-                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                  <input
-                    type="date"
-                    value={fromDate}
-                    disabled={loading}
-                    onChange={(e) => {
-                      setFromDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
-                  />
-                  <span className="text-sm text-slate-400">to</span>
-                  <input
-                    type="date"
-                    value={toDate}
-                    disabled={loading}
-                    onChange={(e) => {
-                      setToDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <select
-                value={rowsPerPage}
-                disabled={loading}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none disabled:cursor-not-allowed"
-              >
-                <option value={5}>5 rows</option>
-                <option value={10}>10 rows</option>
-                <option value={20}>20 rows</option>
-              </select>
-
-              {hasActiveFilters && (
-                <button
-                  onClick={() => {
-                    setSelectedCategory("All");
-                    setDateMode("All");
-                    setFromDate("");
-                    setToDate("");
-                    setSearch("");
-                    setPage(1);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-500 transition hover:bg-red-100"
-                >
-                  <X size={16} />
-                  Clear
-                </button>
-              )}
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Table */}
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
@@ -366,7 +405,7 @@ export default function DynamicTable({
               ) : paginatedData.length > 0 ? (
                 paginatedData.map((row, i) => (
                   <motion.tr
-                    key={row?.id || row?.asin || i}
+                    key={row?.id || i}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: i * 0.03 }}
@@ -421,7 +460,7 @@ export default function DynamicTable({
           <div className="text-sm text-slate-500">
             {loading ? (
               <span className="inline-block h-4 w-36 rounded bg-slate-200 animate-pulse" />
-            ) : (
+            ) : filteredData.length > 0 ? (
               <>
                 Showing{" "}
                 <span className="font-semibold text-slate-800">
@@ -437,6 +476,8 @@ export default function DynamicTable({
                 </span>{" "}
                 entries
               </>
+            ) : (
+              <>Showing 0 entries</>
             )}
           </div>
 
@@ -461,30 +502,28 @@ export default function DynamicTable({
                   />
                 ))
               ) : (
-                Array.from({ length: totalPages }, (_, index) => index + 1)
-                  .slice(Math.max(0, page - 2), Math.max(5, page + 2))
-                  .map((pageNum) => {
-                    const isActive = page === pageNum;
+                getVisiblePages(totalPages, page).map((pageNum) => {
+                  const isActive = page === pageNum;
 
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPage(pageNum)}
-                        className={`flex h-11 min-w-[44px] items-center justify-center rounded-2xl px-3 text-sm font-bold transition-all ${
-                          isActive
-                            ? "bg-[#111827] text-white shadow-lg"
-                            : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`flex h-11 min-w-[44px] items-center justify-center rounded-2xl px-3 text-sm font-bold transition-all ${
+                        isActive
+                          ? "bg-[#111827] text-white shadow-lg"
+                          : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })
               )}
             </div>
 
             <button
-              disabled={loading || page === totalPages}
+              disabled={loading || page === totalPages || totalPages === 0}
               onClick={() => setPage((prev) => prev + 1)}
               className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -500,7 +539,10 @@ export default function DynamicTable({
       {/* Modal */}
       <AnimatePresence>
         {selectedRow && !loading && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
+            onClick={() => setSelectedRow(null)}
+          >
             <motion.div
               className="absolute inset-0 bg-black/55 backdrop-blur-[4px]"
               initial={{ opacity: 0 }}
@@ -527,7 +569,7 @@ export default function DynamicTable({
                     Amazon Panel
                   </p>
                   <h3 className="mt-1 text-2xl font-bold text-[#111827]">
-                    Product Details
+                    Record Details
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
                     Complete overview of the selected record
@@ -549,30 +591,37 @@ export default function DynamicTable({
 
               <div className="max-h-[68vh] overflow-y-auto bg-[#f8f9fb] px-6 sm:px-8 py-6 custom-scrollbar">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {Object.entries(selectedRow).map(([key, value], index) => (
-                    <motion.div
-                      key={key}
-                      initial={{ opacity: 0, y: 18 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.28,
-                        delay: index * 0.04,
-                        ease: "easeOut",
-                      }}
-                      whileHover={{ y: -4 }}
-                      className="group rounded-2xl bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(15,23,42,0.12)]"
-                    >
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                        {formatHeader(key)}
-                      </p>
+                  {Object.entries(selectedRow)
+                    .filter(
+                      ([key]) =>
+                        key !== "id" &&
+                        !key.endsWith("Raw") &&
+                        !key.startsWith("_")
+                    )
+                    .map(([key, value], index) => (
+                      <motion.div
+                        key={key}
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.28,
+                          delay: index * 0.04,
+                          ease: "easeOut",
+                        }}
+                        whileHover={{ y: -4 }}
+                        className="group rounded-2xl bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition-all duration-300 hover:shadow-[0_18px_38px_rgba(15,23,42,0.12)]"
+                      >
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                          {formatHeader(key)}
+                        </p>
 
-                      <div className="mt-2 h-[2px] w-10 rounded-full bg-gradient-to-r from-[#FF9900] to-[#ffd18a] transition-all duration-300 group-hover:w-16" />
+                        <div className="mt-2 h-[2px] w-10 rounded-full bg-gradient-to-r from-[#FF9900] to-[#ffd18a] transition-all duration-300 group-hover:w-16" />
 
-                      <div className="mt-3 text-sm leading-6 text-slate-700 break-words">
-                        {renderDetailValue(value)}
-                      </div>
-                    </motion.div>
-                  ))}
+                        <div className="mt-3 text-sm leading-6 text-slate-700 break-words">
+                          {renderDetailValue(value)}
+                        </div>
+                      </motion.div>
+                    ))}
                 </div>
               </div>
 
@@ -620,6 +669,24 @@ export default function DynamicTable({
       </AnimatePresence>
     </div>
   );
+}
+
+function getVisiblePages(totalPages, currentPage) {
+  const maxVisible = 5;
+
+  if (totalPages <= maxVisible) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  let start = Math.max(1, currentPage - 2);
+  let end = start + maxVisible - 1;
+
+  if (end > totalPages) {
+    end = totalPages;
+    start = end - maxVisible + 1;
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
 function renderCell(value) {
