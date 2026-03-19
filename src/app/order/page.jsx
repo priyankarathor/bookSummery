@@ -55,6 +55,10 @@ export default function Order() {
   const [channelFilter, setChannelFilter] = useState("All");
   const [orderTypeFilter, setOrderTypeFilter] = useState("All");
 
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState("");
+  const [shippingAddress, setShippingAddress] = useState(null);
+
   const headers = [
     "Order ID",
     "Sales Channel",
@@ -87,8 +91,7 @@ export default function Order() {
 
       if (!res.ok || !data.success) {
         throw new Error(
-          `${data?.message || "Failed to fetch orders"}${
-            data?.status ? ` (Status: ${data.status})` : ""
+          `${data?.message || "Failed to fetch orders"}${data?.status ? ` (Status: ${data.status})` : ""
           }`
         );
       }
@@ -103,6 +106,65 @@ export default function Order() {
       setMessage("");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchShippingAddress(order) {
+    try {
+      setShippingLoading(true);
+      setShippingError("");
+      setShippingAddress(null);
+
+      const rawOrder = order?.rawOrder || order;
+      const amazonOrderId = rawOrder?.AmazonOrderId;
+
+      if (!amazonOrderId) {
+        throw new Error("AmazonOrderId not found for selected order");
+      }
+
+      const res = await fetch("/api/order-shippingdetails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          AmazonOrderId: amazonOrderId,
+          MarketplaceId: rawOrder?.MarketplaceId,
+          rawOrder,
+        }),
+      });
+
+      const data = await res.json();
+      console.log("Shipping route response:", data);
+
+      if (!res.ok || !data.success) {
+        throw new Error(
+          data?.lastFailure?.apiResponse?.message ||
+          data?.message ||
+          "Failed to fetch shipping address"
+        );
+      }
+
+      const address =
+        data?.payload?.ShippingAddress ||
+        data?.payload?.shippingAddress ||
+        data?.ShippingAddress ||
+        data?.shippingAddress ||
+        data?.payload?.payload?.ShippingAddress ||
+        data?.payload?.payload?.shippingAddress ||
+        null;
+
+      if (!address) {
+        throw new Error("Shipping address not found in response");
+      }
+
+      setShippingAddress(address);
+    } catch (err) {
+      console.error("Shipping address fetch error:", err);
+      setShippingError(err.message || "Failed to fetch shipping address");
+      setShippingAddress(null);
+    } finally {
+      setShippingLoading(false);
     }
   }
 
@@ -202,22 +264,22 @@ export default function Order() {
         statusFilter === "All"
           ? true
           : statusFilter === "Pending"
-          ? rawStatus === "pending" ||
+            ? rawStatus === "pending" ||
             rawStatus === "unshipped" ||
             rawStatus === "partiallyshipped"
-          : statusFilter === "Shipped / Delivered"
-          ? rawStatus === "shipped" || rawStatus === "delivered"
-          : statusFilter === "Canceled"
-          ? rawStatus === "canceled" || rawStatus === "cancelled"
-          : statusFilter === "Unshipped"
-          ? rawStatus === "unshipped"
-          : statusFilter === "Partially Shipped"
-          ? rawStatus === "partiallyshipped"
-          : statusFilter === "Invoice Unconfirmed"
-          ? rawStatus === "invoiceunconfirmed"
-          : statusFilter === "Unknown"
-          ? !rawStatus
-          : rawStatus === statusFilter.toLowerCase();
+            : statusFilter === "Shipped / Delivered"
+              ? rawStatus === "shipped" || rawStatus === "delivered"
+              : statusFilter === "Canceled"
+                ? rawStatus === "canceled" || rawStatus === "cancelled"
+                : statusFilter === "Unshipped"
+                  ? rawStatus === "unshipped"
+                  : statusFilter === "Partially Shipped"
+                    ? rawStatus === "partiallyshipped"
+                    : statusFilter === "Invoice Unconfirmed"
+                      ? rawStatus === "invoiceunconfirmed"
+                      : statusFilter === "Unknown"
+                        ? !rawStatus
+                        : rawStatus === statusFilter.toLowerCase();
 
       const matchesChannel =
         channelFilter === "All"
@@ -244,8 +306,10 @@ export default function Order() {
   const tableData = useMemo(() => {
     return filteredOrders.map((order, index) => ({
       id: order.AmazonOrderId || index,
+      rawOrder: order,
       orderStatusRaw: String(order.OrderStatus || ""),
       purchaseDateRaw: order.PurchaseDate || "",
+
       "Order ID": (
         <span className="font-semibold text-indigo-600">
           {order.AmazonOrderId || "N/A"}
@@ -346,7 +410,6 @@ export default function Order() {
       animate="show"
       className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 p-4 md:p-8 space-y-6"
     >
-      {/* Header */}
       <motion.div
         variants={itemVariants}
         className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-sm"
@@ -384,6 +447,16 @@ export default function Order() {
         </div>
       </motion.div>
 
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 font-medium"
+        >
+          {error}
+        </motion.div>
+      )}
+
       {!error && message && orders.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -394,7 +467,6 @@ export default function Order() {
         </motion.div>
       )}
 
-      {/* Cards */}
       <motion.div variants={itemVariants} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <StatCard
@@ -434,7 +506,6 @@ export default function Order() {
         </div>
       </motion.div>
 
-      {/* API Date Filters */}
       <motion.div
         variants={itemVariants}
         className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 md:p-6 space-y-6"
@@ -537,7 +608,7 @@ export default function Order() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
             <div className="xl:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Search
@@ -565,16 +636,44 @@ export default function Order() {
                 <option>Shipped / Delivered</option>
                 <option>Canceled</option>
                 <option>Unshipped</option>
+                <option>Partially Shipped</option>
+                <option>Invoice Unconfirmed</option>
+                <option>Unknown</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Quick Summary
+                Sales Channel
               </label>
-              <div className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 flex items-center text-sm font-medium text-slate-600">
-                {filteredOrders.length} Orders Found
-              </div>
+              <select
+                value={channelFilter}
+                onChange={(e) => setChannelFilter(e.target.value)}
+                className="w-full h-10 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {salesChannels.map((channel) => (
+                  <option key={channel} value={channel}>
+                    {channel}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Order Type
+              </label>
+              <select
+                value={orderTypeFilter}
+                onChange={(e) => setOrderTypeFilter(e.target.value)}
+                className="w-full h-10 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {orderTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -594,14 +693,15 @@ export default function Order() {
         </div>
       </motion.div>
 
-      {/* Table */}
       <motion.div
         variants={itemVariants}
         className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden"
       >
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-50 to-white">
           <div>
-            <h3 className="text-base md:text-lg font-bold text-slate-800">Order Records</h3>
+            <h3 className="text-base md:text-lg font-bold text-slate-800">
+              Order Records
+            </h3>
             <p className="text-sm text-slate-500 mt-1">
               Detailed order listing with real-time status visibility
             </p>
@@ -636,6 +736,11 @@ export default function Order() {
               hideDateFilter={true}
               filterKey="orderStatusRaw"
               dateKey="purchaseDateRaw"
+              onDetailsOpen={fetchShippingAddress}
+              showShippingAddress={true}
+              shippingAddress={shippingAddress}
+              shippingLoading={shippingLoading}
+              shippingError={shippingError}
             />
           </div>
         )}
