@@ -91,7 +91,8 @@ export default function Order() {
 
       if (!res.ok || !data.success) {
         throw new Error(
-          `${data?.message || "Failed to fetch orders"}${data?.status ? ` (Status: ${data.status})` : ""
+          `${data?.message || "Failed to fetch orders"}${
+            data?.status ? ` (Status: ${data.status})` : ""
           }`
         );
       }
@@ -140,8 +141,8 @@ export default function Order() {
       if (!res.ok || !data.success) {
         throw new Error(
           data?.lastFailure?.apiResponse?.message ||
-          data?.message ||
-          "Failed to fetch shipping address"
+            data?.message ||
+            "Failed to fetch shipping address"
         );
       }
 
@@ -264,22 +265,22 @@ export default function Order() {
         statusFilter === "All"
           ? true
           : statusFilter === "Pending"
-            ? rawStatus === "pending" ||
+          ? rawStatus === "pending" ||
             rawStatus === "unshipped" ||
             rawStatus === "partiallyshipped"
-            : statusFilter === "Shipped / Delivered"
-              ? rawStatus === "shipped" || rawStatus === "delivered"
-              : statusFilter === "Canceled"
-                ? rawStatus === "canceled" || rawStatus === "cancelled"
-                : statusFilter === "Unshipped"
-                  ? rawStatus === "unshipped"
-                  : statusFilter === "Partially Shipped"
-                    ? rawStatus === "partiallyshipped"
-                    : statusFilter === "Invoice Unconfirmed"
-                      ? rawStatus === "invoiceunconfirmed"
-                      : statusFilter === "Unknown"
-                        ? !rawStatus
-                        : rawStatus === statusFilter.toLowerCase();
+          : statusFilter === "Shipped / Delivered"
+          ? rawStatus === "shipped" || rawStatus === "delivered"
+          : statusFilter === "Canceled"
+          ? rawStatus === "canceled" || rawStatus === "cancelled"
+          : statusFilter === "Unshipped"
+          ? rawStatus === "unshipped"
+          : statusFilter === "Partially Shipped"
+          ? rawStatus === "partiallyshipped"
+          : statusFilter === "Invoice Unconfirmed"
+          ? rawStatus === "invoiceunconfirmed"
+          : statusFilter === "Unknown"
+          ? !rawStatus
+          : rawStatus === statusFilter.toLowerCase();
 
       const matchesChannel =
         channelFilter === "All"
@@ -373,11 +374,11 @@ export default function Order() {
       number_of_items_unshipped: order.NumberOfItemsUnshipped || 0,
     }));
 
-    const headers = Object.keys(rows[0]);
+    const csvHeaders = Object.keys(rows[0]);
     const csvContent = [
-      headers.join(","),
+      csvHeaders.join(","),
       ...rows.map((row) =>
-        headers
+        csvHeaders
           .map((field) =>
             `"${String(row[field] ?? "")
               .replace(/"/g, '""')
@@ -446,8 +447,7 @@ export default function Order() {
           </div>
         </div>
       </motion.div>
-
-      {error && (
+     {error && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -466,7 +466,6 @@ export default function Order() {
           {message}
         </motion.div>
       )}
-
       <motion.div variants={itemVariants} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <StatCard
@@ -521,7 +520,8 @@ export default function Order() {
                 Order Filters & Export
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Filter orders by date, search, and status. Export filtered data anytime.
+                Filter orders by date, search, and status. Export filtered data
+                anytime.
               </p>
             </div>
           </div>
@@ -547,7 +547,9 @@ export default function Order() {
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 md:p-5">
           <div className="mb-4">
-            <h3 className="text-sm font-bold text-slate-800">Fetch Orders by Date</h3>
+            <h3 className="text-sm font-bold text-slate-800">
+              Fetch Orders by Date
+            </h3>
             <p className="text-xs text-slate-500 mt-1">
               Select a date range to load orders from the API.
             </p>
@@ -602,7 +604,9 @@ export default function Order() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
           <div className="mb-4">
-            <h3 className="text-sm font-bold text-slate-800">Filter Visible Records</h3>
+            <h3 className="text-sm font-bold text-slate-800">
+              Filter Visible Records
+            </h3>
             <p className="text-xs text-slate-500 mt-1">
               Search and refine the currently loaded orders.
             </p>
@@ -820,16 +824,8 @@ function getTodayInputDate() {
 }
 
 function buildDateRange(startDate, endDate) {
-  const start = new Date(`${startDate}T00:00:00Z`);
-  let end;
-
-  const today = getTodayInputDate();
-
-  if (endDate === today) {
-    end = new Date();
-  } else {
-    end = new Date(`${endDate}T23:59:59Z`);
-  }
+  const start = new Date(`${startDate}T00:00:00.000Z`);
+  const end = new Date(`${endDate}T23:59:59.999Z`);
 
   return {
     startISO: start.toISOString(),

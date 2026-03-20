@@ -9,6 +9,10 @@ import {
   Download,
   AlertCircle,
   ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  CalendarRange,
+  Activity,
 } from "lucide-react";
 import {
   XAxis,
@@ -19,7 +23,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "../lib/util";
 
 /* ================= KPI DATA ================= */
@@ -31,6 +35,7 @@ const kpiCards = [
     trend: "+14.2%",
     up: true,
     icon: Package,
+    color: "amber",
   },
   {
     title: "Total Sales",
@@ -38,6 +43,7 @@ const kpiCards = [
     trend: "+8.1%",
     up: true,
     icon: IndianRupee,
+    color: "emerald",
   },
   {
     title: "Fulfilled Orders",
@@ -45,13 +51,15 @@ const kpiCards = [
     trend: "-2.4%",
     up: false,
     icon: Truck,
+    color: "blue",
   },
   {
     title: "Customer Returns",
     value: "23",
-    trend: "Normal",
+    trend: "Stable",
     up: true,
     icon: RefreshCcw,
+    color: "rose",
   },
 ];
 
@@ -63,16 +71,35 @@ const tabs = [
   "Inventory",
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
-};
-
-const staggerWrap = {
+const containerVariants = {
   hidden: {},
   show: {
     transition: {
-      staggerChildren: 0.12,
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 22 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+const floatingIcon = {
+  animate: {
+    y: [0, -4, 0],
+    rotate: [0, 3, 0, -3, 0],
+    transition: {
+      duration: 4,
+      repeat: Infinity,
+      ease: "easeInOut",
     },
   },
 };
@@ -80,15 +107,13 @@ const staggerWrap = {
 export default function AmazonDashboard() {
   const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
   const [activeTab, setActiveTab] = useState("Business Overview");
 
   const [dateMode, setDateMode] = useState("All");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-
-  /* ================= FETCH API ================= */
 
   useEffect(() => {
     const fetchRevenue = async () => {
@@ -111,18 +136,14 @@ export default function AmazonDashboard() {
     fetchRevenue();
   }, []);
 
-  /* ================= DATE FILTER ================= */
-
   const filteredRevenueData = useMemo(() => {
     if (!Array.isArray(revenueData)) return [];
-
     if (dateMode === "All") return revenueData;
 
     const today = new Date();
 
     return revenueData.filter((item) => {
       if (!item?.date) return true;
-
       const itemDate = new Date(item.date);
 
       if (dateMode === "Today") {
@@ -187,132 +208,122 @@ export default function AmazonDashboard() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 pt-8 pb-8 sm:px-6 lg:px-10 font-sans text-slate-900">
-      {/* BACKGROUND FX */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-          animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-am ber-300/20 blur-3xl"
-        />
-        <motion.div
-          animate={{ x: [0, -35, 0], y: [0, 25, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 right-0 h-80 w-80 rounded-full bg-oran ge-300/10 bl ur-3xl"
-        />
-        <motion.div
-          animate={{ x: [0, 20, 0], y: [0, 35, 0] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-yel low-400/10 bl ur-3xl"
-        />
-      </div>
-
+    <div className="min-h-screen bg-[#f6f7fb] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
       <motion.div
-        variants={staggerWrap}
+        variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="relative z-10"
+        className="mx-auto max-w-7xl"
       >
         {/* HEADER */}
-        <motion.header
-          variants={fadeUp}
-          className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+        <motion.div
+          variants={itemVariants}
+          className="mb-6 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6"
         >
-          <div>
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="bg-gradient-to-r from-slate-900 via-slate-700 to-amber-600 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-4xl"
-            >
-              Seller Central
-            </motion.h1>
-            <p className="mt-1 text-sm text-slate-500 sm:text-base">
-              Real-time performance metrics and store health.
-            </p>
-          </div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Live Dashboard
+                </span>
+              </div>
 
-          <motion.div
-            variants={fadeUp}
-            className="flex flex-wrap items-center gap-3"
-          >
-            <select
-              value={dateMode}
-              onChange={(e) => {
-                setDateMode(e.target.value);
-                setFromDate("");
-                setToDate("");
-              }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-            >
-              <option value="All">All Dates</option>
-              <option value="Today">Today</option>
-              <option value="Week">Last 7 Days</option>
-              <option value="Custom">Custom Range</option>
-            </select>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Seller Central Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Monitor orders, revenue, fulfillment and inventory performance.
+              </p>
+            </div>
 
-            {dateMode === "Custom" && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="flex items-center gap-2"
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                <CalendarRange className="h-4 w-4" />
+                <select
+                  value={dateMode}
+                  onChange={(e) => {
+                    setDateMode(e.target.value);
+                    setFromDate("");
+                    setToDate("");
+                  }}
+                  className="bg-transparent outline-none"
+                >
+                  <option value="All">All Dates</option>
+                  <option value="Today">Today</option>
+                  <option value="Week">Last 7 Days</option>
+                  <option value="Custom">Custom Range</option>
+                </select>
+              </div>
+
+              <AnimatePresence>
+                {dateMode === "Custom" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="flex flex-wrap items-center gap-2"
+                  >
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
+                    />
+                    <span className="text-sm text-slate-400">to</span>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.button
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleExport}
+                className="group relative overflow-hidden rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
               >
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-                />
-
-                <span className="text-sm text-slate-400">to</span>
-
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-                />
-              </motion.div>
-            )}
-
-            <motion.button
-              whileHover={{ scale: 1.04, y: -2 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={handleExport}
-              className="group relative overflow-hidden rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg transition"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/10 to-amber-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              <span className="relative flex items-center gap-2">
-                <Download className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
-                Export
-              </span>
-            </motion.button>
-          </motion.div>
-        </motion.header>
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                <span className="relative flex items-center gap-2">
+                  <Download className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
+                  Export
+                </span>
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* KPI CARDS */}
         <motion.div
-          variants={staggerWrap}
-          className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4"
+          variants={containerVariants}
+          className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         >
           {kpiCards.map((card, index) => (
-            <KPICard key={card.title} {...card} index={index} />
+            <AnimatedKPICard key={card.title} {...card} index={index} />
           ))}
         </motion.div>
 
         {/* TABS */}
         <motion.div
-          variants={fadeUp}
-          className="mb-6 flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-white/60 bg-white/70 p-1 shadow-sm backdrop-blur-xl sm:w-fit"
+          variants={itemVariants}
+          className="mb-6 flex w-full gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
         >
           {tabs.map((tab) => {
             const isActive = activeTab === tab;
+
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "relative px-4 sm:px-6 py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition whitespace-nowrap",
+                  "relative whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition",
                   isActive
                     ? "text-slate-900"
                     : "text-slate-500 hover:text-slate-700"
@@ -320,9 +331,9 @@ export default function AmazonDashboard() {
               >
                 {isActive && (
                   <motion.span
-                    layoutId="active-pill"
-                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-100 via-white to-orange-100 shadow-sm ring-1 ring-amber-200/70"
-                    transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                    layoutId="activeTab"
+                    transition={{ type: "spring", stiffness: 280, damping: 26 }}
+                    className="absolute inset-0 rounded-xl bg-slate-100"
                   />
                 )}
                 <span className="relative z-10">{tab}</span>
@@ -332,76 +343,100 @@ export default function AmazonDashboard() {
         </motion.div>
 
         {/* MAIN GRID */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
-          {/* LEFT */}
-          <div className="space-y-8 lg:col-span-8">
-            {/* REVENUE CHART */}
-            <motion.section
-              variants={fadeUp}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+          <div className="space-y-6 xl:col-span-8">
+            {/* CHART CARD */}
+            <motion.div
+              variants={itemVariants}
               whileHover={{ y: -4 }}
-              className="group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-[0_10px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-6"
+              className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-lg sm:p-6"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 via-transparent to-orange-50/40 opacity-60" />
-              <div className="absolute -top-24 right-0 h-40 w-40 rounded-full bg-amber-300/10 blur-3xl" />
-
-              <div className="relative z-10 mb-6 flex justify-between">
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-amber-50/40 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="relative z-10 mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-bold sm:text-xl">Revenue Growth</h3>
+                  <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <Activity className="h-3.5 w-3.5" />
+                    Revenue Analysis
+                  </div>
+                  <h3 className="text-lg font-semibold">Revenue Growth</h3>
                   <p className="text-sm text-slate-500">
-                    Monthly profit vs loss comparison
+                    Monthly profit and loss overview
                   </p>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs font-medium sm:text-sm">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    Profit
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+                    Loss
+                  </div>
                 </div>
               </div>
 
-              <div className="relative z-10 h-[260px] w-full sm:h-[320px] lg:h-[350px]">
+              <div className="relative z-10 h-[280px] w-full sm:h-[340px]">
                 {loading && (
                   <div className="flex h-full items-center justify-center">
-                    <div className="w-full animate-pulse space-y-3 px-4">
+                    <div className="w-full animate-pulse space-y-4">
                       <div className="h-4 w-40 rounded bg-slate-200" />
-                      <div className="h-52 rounded-2xl bg-slate-100" />
+                      <div className="h-[240px] rounded-2xl bg-slate-100" />
                     </div>
                   </div>
                 )}
 
                 {error && (
-                  <div className="flex h-full items-center justify-center text-red-500">
+                  <div className="flex h-full items-center justify-center rounded-2xl bg-red-50 text-red-500">
                     {error}
                   </div>
                 )}
 
                 {!loading && !error && filteredRevenueData.length > 0 && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.7 }}
+                    initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.5 }}
                     className="h-full w-full"
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={filteredRevenueData}>
+                      <AreaChart
+                        data={filteredRevenueData}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      >
                         <defs>
                           <linearGradient id="profitFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.45} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.04} />
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.22} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
                           </linearGradient>
-
                           <linearGradient id="lossFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.32} />
-                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.04} />
+                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.18} />
+                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.02} />
                           </linearGradient>
                         </defs>
 
                         <CartesianGrid
-                          strokeDasharray="3 3"
                           vertical={false}
-                          stroke="#e2e8f0"
+                          stroke="#e5e7eb"
+                          strokeDasharray="3 3"
                         />
-                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
+
+                        <XAxis
+                          dataKey="month"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 12, fill: "#64748b" }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 12, fill: "#64748b" }}
+                        />
                         <Tooltip
                           contentStyle={{
-                            borderRadius: "16px",
+                            borderRadius: "14px",
                             border: "1px solid #e2e8f0",
-                            boxShadow: "0 10px 30px rgba(15,23,42,0.08)",
+                            boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
                           }}
                         />
 
@@ -410,15 +445,14 @@ export default function AmazonDashboard() {
                           dataKey="profit"
                           stroke="#10b981"
                           fill="url(#profitFill)"
-                          strokeWidth={3}
+                          strokeWidth={2.5}
                         />
-
                         <Area
                           type="monotone"
                           dataKey="loss"
                           stroke="#f43f5e"
                           fill="url(#lossFill)"
-                          strokeWidth={3}
+                          strokeWidth={2.5}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -431,209 +465,340 @@ export default function AmazonDashboard() {
                   </div>
                 )}
               </div>
-            </motion.section>
+            </motion.div>
 
             {/* STATUS CARDS */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <StatusCard
+              <AnimatedStatusCard
                 title="Fulfillment Health"
                 stats={[
                   { label: "Total Shipments", value: "128" },
                   { label: "Delayed", value: "2" },
                   { label: "In Transit", value: "45" },
                 ]}
-                delay={0.1}
               />
 
-              <StatusCard
+              <AnimatedStatusCard
                 title="Customer Satisfaction"
                 stats={[
                   { label: "Positive Feedback", value: "98%" },
                   { label: "Claims Open", value: "1" },
                   { label: "Response Time", value: "4h" },
                 ]}
-                delay={0.2}
               />
             </div>
           </div>
 
-          {/* RIGHT PANEL */}
-          <div className="space-y-6 lg:col-span-4 lg:space-y-8">
-            <motion.section
-              variants={fadeUp}
+          <div className="space-y-6 xl:col-span-4">
+            {/* REGIONAL CARD */}
+            <motion.div
+              variants={itemVariants}
               whileHover={{ y: -4 }}
-              className="rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-[0_10px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+              className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-lg"
             >
-              <h3 className="mb-6 text-lg font-bold">Regional Distribution</h3>
+              <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50 to-slate-100/70 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
-              <div className="space-y-5">
-                {["North Zone", "South Zone", "East Zone", "West Zone"].map(
-                  (zone, i) => {
-                    const width = 40 - i * 8;
-                    return (
-                      <motion.div
-                        key={zone}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.12, duration: 0.5 }}
-                      >
-                        <div className="mb-1 flex justify-between text-sm">
-                          <span>{zone}</span>
-                          <span>{width}%</span>
-                        </div>
-
-                        <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${width}%` }}
-                            transition={{
-                              duration: 1,
-                              delay: i * 0.15,
-                              ease: "easeOut",
-                            }}
-                            className="h-2.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_18px_rgba(251,146,60,0.45)]"
-                          />
-                        </div>
-                      </motion.div>
-                    );
-                  }
-                )}
+              <div className="relative z-10 mb-6 flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Regional Distribution</h3>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
+                  Active
+                </span>
               </div>
-            </motion.section>
 
-            <motion.section
-              variants={fadeUp}
-              whileHover={{ scale: 1.02 }}
-              className="relative overflow-hidden rounded-3xl bg-slate-900 p-6 text-white shadow-2xl"
+              <div className="relative z-10 space-y-5">
+                {[
+                  { zone: "North Zone", value: 40 },
+                  { zone: "South Zone", value: 32 },
+                  { zone: "East Zone", value: 24 },
+                  { zone: "West Zone", value: 16 },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.zone}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                  >
+                    <div className="mb-1.5 flex items-center justify-between text-sm">
+                      <span className="text-slate-600">{item.zone}</span>
+                      <span className="font-medium text-slate-900">
+                        {item.value}%
+                      </span>
+                    </div>
+
+                    <div className="h-2.5 rounded-full bg-slate-100">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${item.value}%` }}
+                        transition={{ duration: 0.9, delay: i * 0.1 }}
+                        className="relative h-2.5 overflow-hidden rounded-full bg-slate-900"
+                      >
+                        <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_linear_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* ALERT CARD */}
+            <motion.div
+              variants={itemVariants}
+              whileHover={{ y: -4, scale: 1.01 }}
+              className="group relative overflow-hidden rounded-3xl bg-slate-900 p-6 text-white shadow-sm transition-all duration-300 hover:shadow-xl"
             >
               <motion.div
-                animate={{ scale: [1, 1.08, 1], opacity: [0.18, 0.28, 0.18] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-amber-400 blur-3xl"
+                animate={{
+                  x: [-20, 20, -20],
+                  y: [0, -10, 0],
+                  opacity: [0.2, 0.35, 0.2],
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-400 blur-3xl"
               />
 
-              <div className="relative z-10">
-                <div className="mb-4 flex items-center gap-3">
-                  <motion.div
-                    animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.06, 1] }}
-                    transition={{ duration: 2.5, repeat: Infinity }}
-                    className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500 shadow-lg"
-                  >
-                    <AlertCircle className="h-5 w-5 text-black" />
-                  </motion.div>
+              <motion.div
+                animate={{
+                  x: [0, 15, 0],
+                  opacity: [0.08, 0.18, 0.08],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-orange-400 blur-3xl"
+              />
 
-                  <h3 className="text-lg font-bold">Inventory Alert</h3>
+              <div className="relative z-10 mb-4 flex items-center gap-3">
+                <motion.div
+                  variants={floatingIcon}
+                  animate="animate"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400 text-black"
+                >
+                  <AlertCircle className="h-5 w-5" />
+                </motion.div>
+
+                <div>
+                  <h3 className="text-lg font-semibold">Inventory Alert</h3>
+                  <p className="text-sm text-slate-400">Immediate attention needed</p>
+                </div>
+              </div>
+
+              <p className="relative z-10 mb-5 text-sm leading-6 text-slate-300">
+                4 products are close to stock-out. Restock them soon to avoid
+                order interruptions.
+              </p>
+
+              <div className="relative z-10 mb-5 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-slate-400">Risk Level</span>
+                  <motion.span
+                    animate={{ opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="font-semibold text-amber-300"
+                  >
+                    82%
+                  </motion.span>
                 </div>
 
-                <p className="mb-5 text-sm leading-6 text-slate-300">
-                  4 items are reaching critically low levels. Restock now before
-                  they impact order flow.
-                </p>
-
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-black shadow-lg"
-                >
-                  Review Stock
-                  <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </motion.button>
+                <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "82%" }}
+                    transition={{ duration: 1 }}
+                    className="relative h-2.5 rounded-full bg-amber-400"
+                  >
+                    <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.2s_linear_infinite] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                  </motion.div>
+                </div>
               </div>
-            </motion.section>
+
+              <motion.button
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative z-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 font-semibold text-black transition hover:bg-slate-100"
+              >
+                Review Stock
+                <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </motion.button>
+            </motion.div>
           </div>
         </div>
       </motion.div>
+
+      <style jsx global>{`
+        @keyframes shimmer {
+          100% {
+            transform: translateX(200%);
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
-/* KPI CARD */
-function KPICard({ title, value, trend, up, icon: Icon, index }) {
+function AnimatedKPICard({
+  title,
+  value,
+  trend,
+  up,
+  icon: Icon,
+  index,
+  color = "amber",
+}) {
+  const glowMap = {
+    amber: "from-amber-100/80 via-orange-50 to-white",
+    emerald: "from-emerald-100/80 via-teal-50 to-white",
+    blue: "from-sky-100/80 via-blue-50 to-white",
+    rose: "from-rose-100/80 via-pink-50 to-white",
+  };
+
+  const iconMap = {
+    amber: "bg-amber-50 text-amber-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    blue: "bg-sky-50 text-sky-600",
+    rose: "bg-rose-50 text-rose-600",
+  };
+
+  const lineMap = {
+    amber: up ? "bg-amber-500" : "bg-rose-500",
+    emerald: up ? "bg-emerald-500" : "bg-rose-500",
+    blue: up ? "bg-sky-500" : "bg-rose-500",
+    rose: up ? "bg-rose-500" : "bg-rose-500",
+  };
+
   return (
     <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      transition={{ delay: index * 0.08 }}
+      variants={itemVariants}
+      transition={{ delay: index * 0.05 }}
       whileHover={{ y: -8, scale: 1.02 }}
-      className="group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl"
+      className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-xl"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-amber-50/50 opacity-90" />
-      <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-amber-300/20 blur-2xl transition-all duration-500 group-hover:scale-150" />
-
-      <motion.div
-        animate={{ rotate: [0, 6, 0, -6, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute right-4 top-4 h-10 w-10 rounded-full bg-slate-100/80 blur-xl"
+      <div
+        className={cn(
+          "absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity duration-500 group-hover:opacity-100",
+          glowMap[color]
+        )}
       />
 
-      <div className="relative z-10">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 shadow-inner transition duration-300 group-hover:scale-110 group-hover:bg-amber-50">
-            <Icon className="h-6 w-6 text-slate-700" />
-          </div>
+      <motion.div
+        animate={{
+          x: [0, 8, 0],
+          y: [0, -6, 0],
+          opacity: [0.16, 0.3, 0.16],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-slate-200 blur-2xl"
+      />
 
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm",
-              up
-                ? "bg-green-50 text-green-600 ring-1 ring-green-100"
-                : "bg-red-50 text-red-600 ring-1 ring-red-100"
-            )}
+      <div className="relative z-10 mb-4 flex items-start justify-between">
+        <motion.div
+          variants={floatingIcon}
+          animate="animate"
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm",
+            iconMap[color]
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </motion.div>
+
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.15 + index * 0.06 }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
+            up
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-rose-50 text-rose-600"
+          )}
+        >
+          {up ? (
+            <TrendingUp className="h-3.5 w-3.5" />
+          ) : (
+            <TrendingDown className="h-3.5 w-3.5" />
+          )}
+          {trend}
+        </motion.div>
+      </div>
+
+      <div className="relative z-10">
+        <p className="text-sm text-slate-500">{title}</p>
+
+        <motion.h3
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 + index * 0.06 }}
+          className="mt-1 text-2xl font-bold tracking-tight"
+        >
+          {value}
+        </motion.h3>
+
+        <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+          <span>Performance</span>
+          <motion.span
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 2, repeat: Infinity }}
           >
-            {trend}
-          </span>
+            Updated now
+          </motion.span>
         </div>
 
-        <p className="text-sm text-slate-500">{title}</p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-          {value}
-        </h2>
-
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${70 + index * 6}%` }}
-            transition={{ duration: 1.2, delay: 0.2 + index * 0.1 }}
-            className={cn(
-              "h-full rounded-full",
-              up
-                ? "bg-gradient-to-r from-green-400 to-emerald-500"
-                : "bg-gradient-to-r from-rose-400 to-red-500"
-            )}
-          />
+            animate={{ width: `${68 + index * 7}%` }}
+            transition={{ duration: 1, delay: 0.2 + index * 0.08 }}
+            className={cn("relative h-full rounded-full", lineMap[color])}
+          >
+            <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.4s_linear_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+          </motion.div>
         </div>
       </div>
     </motion.div>
   );
 }
 
-/* STATUS CARD */
-function StatusCard({ title, stats, delay = 0 }) {
+function AnimatedStatusCard({ title, stats }) {
   return (
     <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      transition={{ delay }}
-      whileHover={{ y: -5 }}
-      className="rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl"
+      variants={itemVariants}
+      whileHover={{ y: -6, scale: 1.01 }}
+      className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-lg"
     >
-      <h3 className="mb-5 text-lg font-bold">{title}</h3>
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50 to-amber-50/30 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
-      <div className="grid grid-cols-3 gap-3">
-        {stats.map((s, i) => (
+      <div className="relative z-10 mb-5 flex items-center justify-between">
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <span className="text-xs font-medium text-slate-400">Updated just now</span>
+      </div>
+
+      <div className="relative z-10 grid grid-cols-3 gap-3">
+        {stats.map((item, i) => (
           <motion.div
-            key={s.label}
+            key={item.label}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: delay + i * 0.1 }}
-            className="rounded-2xl bg-slate-50 p-3 transition hover:bg-amber-50/50"
+            transition={{ delay: i * 0.08 }}
+            whileHover={{ y: -3, scale: 1.03 }}
+            className="rounded-2xl border border-slate-100 bg-slate-50 p-3 transition-all duration-300 hover:bg-white hover:shadow-md"
           >
-            <p className="text-[9px] uppercase tracking-wider text-slate-400 sm:text-[10px]">
-              {s.label}
-            </p>
-            <p className="mt-1 text-lg font-bold">{s.value}</p>
+            <div className="mb-2 flex items-center gap-1.5">
+              <motion.span
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.2 }}
+                className="h-2 w-2 rounded-full bg-emerald-500"
+              />
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                {item.label}
+              </p>
+            </div>
+            <p className="text-lg font-bold text-slate-900">{item.value}</p>
           </motion.div>
         ))}
       </div>

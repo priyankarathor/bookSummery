@@ -212,7 +212,7 @@ export default function Sidebar({
             closeSidebar={closeSidebar}
           />
 
-          <MenuItem
+          {/* <MenuItem
             icon={<HiOutlineExclamationTriangle />}
             label="Customer Details"
             href="/customers"
@@ -220,7 +220,7 @@ export default function Sidebar({
             badge="!"
             active={pathname === "/customers"}
             closeSidebar={closeSidebar}
-          />
+          /> */}
 
           <MenuItem
             icon={<HiOutlineBolt />}

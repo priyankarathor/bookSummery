@@ -100,7 +100,7 @@ export default function ListingPage() {
               </div>
             </div>
 
-            <Link
+            {/* <Link
               href="/listing/add"
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-5 py-3 rounded-xl shadow-sm transition-all duration-200 hover:scale-[1.02]"
               style={{
@@ -110,7 +110,7 @@ export default function ListingPage() {
             >
               <Plus size={18} />
               Add New Product
-            </Link>
+            </Link> */}
           </div>
         </div>
 
