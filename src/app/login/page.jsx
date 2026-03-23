@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -12,7 +12,11 @@ import {
   DollarSign,
   Store,
   Package,
+  Code2,
+  Crown,
+  Boxes,
 } from "lucide-react";
+import { getRedirectPath } from "../components/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,186 +26,256 @@ export default function LoginPage() {
     password: "",
   });
 
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loginRole, setLoginRole] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [showLoader, setShowLoader] = useState(false);
+
   function handleChange(e) {
     const { name, value } = e.target;
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
     }));
+
+    setError("");
+  }
+
+  function getUserRole(email) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (normalizedEmail === "owner@gmail.com") return "main_owner";
+    if (normalizedEmail === "dev@gmail.com") return "developer";
+
+    return "seller";
   }
 
   function handleSubmit(e) {
     e.preventDefault();
-    router.push("/dashboard");
+
+    if (!form.email || !form.password) {
+      setError("Please enter email and password.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const role = getUserRole(form.email);
+      setLoginRole(role);
+
+      const userData = {
+        email: form.email,
+        role,
+        name:
+          role === "main_owner"
+            ? "Main Owner"
+            : role === "developer"
+            ? "Developer"
+            : "Seller User",
+      };
+
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("role", role);
+
+      document.cookie = `token=test_token_123; path=/; max-age=86400`;
+      document.cookie = `role=${role}; path=/; max-age=86400`;
+
+      setShowLoader(true);
+      setProgress(12);
+
+      setTimeout(() => {
+        setProgress(28);
+      }, 250);
+
+      setTimeout(() => {
+        setProgress(62);
+      }, 700);
+
+      setTimeout(() => {
+        setProgress(88);
+      }, 1300);
+
+      setTimeout(() => {
+        setProgress(100);
+      }, 1800);
+
+      setTimeout(() => {
+        router.push(getRedirectPath(role));
+      }, 2200);
+    } catch (err) {
+      setError("Login failed. Please try again.");
+      setLoading(false);
+      setLoginRole(null);
+      setShowLoader(false);
+      setProgress(0);
+    }
   }
 
+  useEffect(() => {
+    if (!showLoader) {
+      setLoading(false);
+    }
+  }, [showLoader]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f0f2f5] px-4 py-6">
-      <div className="w-full max-w-[1100px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] grid md:grid-cols-2 overflow-hidden border border-gray-100">
-        {/* LEFT SIDE */}
-        <div className="relative hidden md:flex flex-col items-center justify-center bg-gradient-to-br from-[#fdfbfb] via-[#ebedee] to-[#f7f7f7] p-12 border-r border-gray-50 overflow-hidden">
-          {/* Background blur */}
-          <div className="absolute top-16 left-8 w-[220px] h-[220px] bg-orange-200 rounded-full blur-[90px] opacity-30 animate-pulse" />
-          <div className="absolute bottom-16 right-8 w-[260px] h-[260px] bg-blue-100 rounded-full blur-[110px] opacity-40" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.8),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.7),transparent_35%)]" />
-
-          <div className="relative z-10 text-center mb-8">
-            <h3 className="text-xl font-bold text-gray-800 tracking-tight">
-              Expand your business globally
-            </h3>
-            <p className="text-sm text-gray-500 mt-2">
-              The most trusted platform for sellers.
-            </p>
-          </div>
-
-          {/* Single Orbit Section */}
-          <div className="relative z-10 w-[380px] h-[380px] flex items-center justify-center">
-            {/* Orbit ring */}
-            <div className="absolute w-[310px] h-[310px] rounded-full border border-white/60 border-dashed opacity-60" />
-
-            {/* Orbit icons */}
-            <div className="absolute inset-0 animate-orbit">
-              <OrbitIcon
-                className="top-0 left-1/2 -translate-x-1/2"
-                icon={ShoppingCart}
-              />
-              <OrbitIcon
-                className="top-[12%] right-[10%]"
-                icon={Truck}
-              />
-              <OrbitIcon
-                className="right-0 top-1/2 -translate-y-1/2"
-                icon={Gift}
-              />
-              <OrbitIcon
-                className="bottom-[12%] right-[10%]"
-                icon={DollarSign}
-              />
-              <OrbitIcon
-                className="bottom-0 left-1/2 -translate-x-1/2"
-                icon={ShieldCheck}
-              />
-              <OrbitIcon
-                className="bottom-[12%] left-[10%]"
-                icon={Star}
-              />
-              <OrbitIcon
-                className="left-0 top-1/2 -translate-y-1/2"
-                icon={Store}
-              />
-              <OrbitIcon
-                className="top-[12%] left-[10%]"
-                icon={Package}
-              />
-            </div>
-
-            {/* Center illustration */}
-            <div className="relative z-20 flex items-center justify-center w-[220px] h-[220px] rounded-full bg-white/40 backdrop-blur-md border border-white/50 shadow-[0_15px_40px_rgba(0,0,0,0.08)]">
-              <img
-                src="/seller-img.png"
-                alt="Seller Illustration"
-                className="w-[300px] h-[300px] object-contain"
-              />
-            </div>
-          </div>
+    <>
+      <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] px-4 py-6 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 left-20 h-48 w-48 rounded-full bg-orange-200/30 blur-[100px]" />
+          <div className="absolute bottom-16 right-16 h-56 w-56 rounded-full bg-blue-200/30 blur-[120px]" />
         </div>
 
-        {/* RIGHT SIDE */}
-        <div className="flex flex-col justify-center items-center p-8 lg:p-16">
-          <div className="w-full max-w-[320px]">
-            <div className="flex justify-center mb-10">
-              <Image
-                src="/AmazonLogo.png"
-                alt="Amazon"
-                width={120}
-                height={36}
-                className="brightness-90"
-              />
+        <div className="w-full max-w-[1150px] bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_25px_80px_rgba(15,23,42,0.12)] grid md:grid-cols-2 overflow-hidden border border-white/70 relative z-10">
+          <div className="relative hidden md:flex flex-col items-center justify-center bg-gradient-to-br from-[#fcfcfd] via-[#f7f9fc] to-[#eef3f8] p-12 border-r border-slate-100 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.85),transparent_35%)]" />
+
+            <div className="relative z-10 text-center mb-8">
+              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">
+                Grow faster with better control
+              </h3>
+              <p className="text-sm text-slate-500 mt-2">
+                Secure access for owner, developer and seller workspaces.
+              </p>
             </div>
 
-            <h2 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
-              Sign in
-            </h2>
-            <p className="text-sm text-gray-500 mb-8 font-medium">
-              Enter your credentials to manage your store.
-            </p>
+            <div className="relative z-10 w-[390px] h-[390px] flex items-center justify-center">
+              <div className="absolute w-[320px] h-[320px] rounded-full border border-slate-200 border-dashed opacity-70" />
+              <div className="absolute w-[260px] h-[260px] rounded-full border border-slate-100" />
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="text-[13px] font-bold text-gray-700 ml-1">
-                  Email or mobile phone number
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="name@example.com"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mt-1.5 focus:border-orange-500 focus:ring-[3px] focus:ring-orange-100 outline-none transition-all placeholder:text-gray-300"
+              <div className="absolute inset-0 animate-orbit-slow">
+                <OrbitIcon
+                  className="top-0 left-1/2 -translate-x-1/2"
+                  icon={ShoppingCart}
+                />
+                <OrbitIcon className="top-[12%] right-[10%]" icon={Truck} />
+                <OrbitIcon
+                  className="right-0 top-1/2 -translate-y-1/2"
+                  icon={Gift}
+                />
+                <OrbitIcon
+                  className="bottom-[12%] right-[10%]"
+                  icon={DollarSign}
+                />
+                <OrbitIcon
+                  className="bottom-0 left-1/2 -translate-x-1/2"
+                  icon={ShieldCheck}
+                />
+                <OrbitIcon className="bottom-[12%] left-[10%]" icon={Star} />
+                <OrbitIcon
+                  className="left-0 top-1/2 -translate-y-1/2"
+                  icon={Store}
+                />
+                <OrbitIcon className="top-[12%] left-[10%]" icon={Package} />
+              </div>
+
+              <div className="relative z-20 flex items-center justify-center w-[230px] h-[230px] rounded-full bg-white/70 backdrop-blur-xl border border-white shadow-[0_20px_50px_rgba(15,23,42,0.10)]">
+                <img
+                  src="/seller-img.png"
+                  alt="Seller Illustration"
+                  className="w-[290px] h-[290px] object-contain animate-float-soft"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center items-center p-8 lg:p-16">
+            <div className="w-full max-w-[340px]">
+              <div className="flex justify-center mb-10">
+                <Image
+                  src="/AmazonLogo.png"
+                  alt="Amazon"
+                  width={125}
+                  height={38}
+                  className="brightness-95"
                 />
               </div>
 
-              <div>
-                <div className="flex justify-between items-center ml-1">
-                  <label className="text-[13px] font-bold text-gray-700">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">
+                Sign in
+              </h2>
+              <p className="text-sm text-slate-500 mb-6 font-medium">
+                Access your dashboard with secure role-based login.
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="text-[13px] font-bold text-slate-700 ml-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="name@example.com"
+                    className="w-full border border-slate-200 bg-white rounded-2xl px-4 py-3 mt-1.5 outline-none transition-all focus:border-orange-400 focus:ring-4 focus:ring-orange-100 placeholder:text-slate-300 shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[13px] font-bold text-slate-700 ml-1">
                     Password
                   </label>
-                  <button
-                    type="button"
-                    className="text-[12px] font-semibold text-blue-600 hover:text-orange-600 transition-colors"
-                  >
-                    Forgot password?
-                  </button>
+                  <input
+                    type="password"
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full border border-slate-200 bg-white rounded-2xl px-4 py-3 mt-1.5 outline-none transition-all focus:border-orange-400 focus:ring-4 focus:ring-orange-100 placeholder:text-slate-300 shadow-sm"
+                  />
                 </div>
-                <input
-                  type="password"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 mt-1.5 focus:border-orange-500 focus:ring-[3px] focus:ring-orange-100 outline-none transition-all placeholder:text-gray-300"
-                />
-              </div>
 
-              <button
-                type="submit"
-                className="w-full mt-4 bg-gradient-to-b from-[#f7dfa5] to-[#f0c14b] hover:from-[#f5d78e] hover:to-[#eeb933] border border-[#a88734] py-3 rounded-xl font-bold text-gray-800 shadow-md active:scale-[0.98] transition-all"
-              >
-                Sign In
-              </button>
+                {error && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
 
-              <div className="pt-4 border-t border-gray-100 mt-6 text-center">
-                <p className="text-[11px] text-gray-500 leading-relaxed px-2">
-                  By continuing, you agree to Amazon&apos;s{" "}
-                  <span className="text-blue-600 cursor-pointer hover:underline">
-                    Conditions of Use
-                  </span>{" "}
-                  and{" "}
-                  <span className="text-blue-600 cursor-pointer hover:underline">
-                    Privacy Notice
-                  </span>
-                  .
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full mt-2 bg-gradient-to-r from-[#f7dfa5] via-[#f3cd6b] to-[#f0c14b] hover:scale-[1.01] active:scale-[0.99] border border-[#b48b2e] py-3.5 rounded-2xl font-bold text-slate-800 shadow-[0_12px_30px_rgba(240,193,75,0.28)] transition-all disabled:opacity-70"
+                >
+                  {loading ? "Starting..." : "Sign In"}
+                </button>
+
+                <p className="text-[11px] text-slate-500 leading-relaxed text-center pt-2">
+                  By continuing, you agree to the platform terms and privacy
+                  policy.
                 </p>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
+
+        {showLoader && loginRole && (
+          <RoleLoaderOverlay role={loginRole} progress={progress} />
+        )}
       </div>
 
       <style jsx global>{`
-        .animate-float {
-          animation: float 5.5s ease-in-out infinite;
+        .animate-float-soft {
+          animation: floatSoft 5s ease-in-out infinite;
         }
 
-        .animate-orbit {
-          animation: orbit 16s linear infinite;
+        .animate-orbit-slow {
+          animation: orbitSlow 18s linear infinite;
         }
 
         .counter-spin {
-          animation: counterSpin 16s linear infinite;
+          animation: counterSpin 18s linear infinite;
         }
 
-        @keyframes float {
+        .animate-loaderEntry {
+          animation: loaderEntry 0.35s ease-out;
+        }
+
+        @keyframes floatSoft {
           0%,
           100% {
             transform: translateY(0px);
@@ -211,7 +285,7 @@ export default function LoginPage() {
           }
         }
 
-        @keyframes orbit {
+        @keyframes orbitSlow {
           from {
             transform: rotate(0deg);
           }
@@ -228,16 +302,187 @@ export default function LoginPage() {
             transform: rotate(-360deg);
           }
         }
+
+        @keyframes loaderEntry {
+          0% {
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
       `}</style>
-    </div>
+    </>
   );
 }
 
 function OrbitIcon({ icon: Icon, className = "" }) {
   return (
     <div className={`absolute ${className}`}>
-      <div className="counter-spin p-3 rounded-2xl bg-white/80 backdrop-blur-md border border-white shadow-[0_8px_20px_rgba(0,0,0,0.08)] hover:scale-110 transition-transform duration-300">
-        <Icon className="w-5 h-5 text-gray-700" strokeWidth={2.2} />
+      <div className="counter-spin p-3 rounded-2xl bg-white/85 backdrop-blur-md border border-white shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition-transform duration-300 hover:scale-110">
+        <Icon className="w-5 h-5 text-slate-700" strokeWidth={2.2} />
+      </div>
+    </div>
+  );
+}
+
+function RoleLoaderOverlay({ role, progress }) {
+  const config = useMemo(() => {
+    if (role === "developer") {
+      return {
+        title: "Opening Developer Workspace",
+        subtitle: "Verifying permissions and loading development tools",
+        badge: "Developer",
+        steps: [
+          "Authenticating developer access",
+          "Loading API and permission modules",
+          "Preparing workspace",
+        ],
+        icon: <Code2 className="w-7 h-7 text-slate-800" strokeWidth={2.2} />,
+      };
+    }
+
+    if (role === "main_owner") {
+      return {
+        title: "Opening Central Dashboard",
+        subtitle: "Syncing reports, controls and business insights",
+        badge: "Main Owner",
+        steps: [
+          "Authenticating owner access",
+          "Loading business controls",
+          "Preparing analytics and reports",
+        ],
+        icon: <Crown className="w-7 h-7 text-slate-800" strokeWidth={2.2} />,
+      };
+    }
+
+    return {
+      title: "Opening Seller Workspace",
+      subtitle: "Loading orders, listings and inventory tools",
+      badge: "Seller",
+      steps: [
+        "Authenticating seller access",
+        "Loading listings and inventory",
+        "Preparing order workspace",
+      ],
+      icon: <Boxes className="w-7 h-7 text-slate-800" strokeWidth={2.2} />,
+    };
+  }, [role]);
+
+  const activeStep = progress < 34 ? 0 : progress < 75 ? 1 : 2;
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/35 backdrop-blur-[6px] flex items-center justify-center px-4">
+      <div className="w-full max-w-xl rounded-[28px] border border-slate-200 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.20)] overflow-hidden animate-loaderEntry">
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#f7dfa5] via-[#f0c14b] to-[#d89b1d]" />
+
+        <div className="p-8 md:p-10">
+          <div className="flex items-start gap-4">
+            <div className="relative shrink-0">
+              <div className="h-14 w-14 rounded-2xl border border-[#e6e6e6] bg-[#fffaf0] flex items-center justify-center shadow-sm">
+                {config.icon}
+              </div>
+              <div className="absolute inset-0 rounded-2xl border border-[#f0c14b]/40 animate-ping opacity-40" />
+            </div>
+
+            <div className="flex-1">
+              <div className="inline-flex items-center rounded-full border border-[#ead8a2] bg-[#fff7df] px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#8a6a16]">
+                {config.badge} Access
+              </div>
+
+              <h2 className="mt-3 text-[26px] md:text-[30px] leading-tight font-bold text-slate-900">
+                {config.title}
+              </h2>
+
+              <p className="mt-2 text-sm md:text-[15px] text-slate-500">
+                {config.subtitle}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 space-y-3">
+            {config.steps.map((step, index) => {
+              const done = index < activeStep;
+              const current = index === activeStep;
+
+              return (
+                <div
+                  key={step}
+                  className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-300 ${
+                    current
+                      ? "border-[#f0c14b] bg-[#fff8e8] shadow-sm"
+                      : done
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-slate-200 bg-slate-50"
+                  }`}
+                >
+                  <div
+                    className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      done
+                        ? "bg-emerald-500 text-white"
+                        : current
+                        ? "bg-[#f0c14b] text-slate-900"
+                        : "bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {done ? "✓" : index + 1}
+                  </div>
+
+                  <p
+                    className={`text-sm font-medium ${
+                      current
+                        ? "text-slate-900"
+                        : done
+                        ? "text-emerald-700"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {step}
+                  </p>
+
+                  {current && (
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-[#f0c14b] animate-bounce [animation-delay:-0.2s]" />
+                      <span className="h-2 w-2 rounded-full bg-[#f0c14b] animate-bounce [animation-delay:-0.1s]" />
+                      <span className="h-2 w-2 rounded-full bg-[#f0c14b] animate-bounce" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-600">
+                Securing session
+              </span>
+              <span className="text-sm font-semibold text-slate-800">
+                {progress}%
+              </span>
+            </div>
+
+            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#f7dfa5] via-[#f0c14b] to-[#d89b1d] transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <ShieldCheck className="w-4 h-4" strokeWidth={2.2} />
+              Protected role-based sign in
+            </div>
+
+            <div className="text-xs text-slate-400">
+              Amazon-style secure access
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

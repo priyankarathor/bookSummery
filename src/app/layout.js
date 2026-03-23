@@ -12,13 +12,17 @@ export default function RootLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const pathname = usePathname();
-  const isLoginPage = pathname === "/login";
+  const isPlainPage =
+    pathname === "/login" || pathname === "/unauthorized";
 
   return (
     <html lang="en">
       <body className="bg-slate-100">
-        {isLoginPage ? (
-          children
+        {isPlainPage ? (
+          <>
+            <Toaster position="top-right" />
+            {children}
+          </>
         ) : (
           <>
             <Sidebar
