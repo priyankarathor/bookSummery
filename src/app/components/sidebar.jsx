@@ -43,7 +43,7 @@ const menuItems = [
   /* SELLER */
   { label: "Inventory", href: "/seller-panel/inventory", icon: <HiOutlineHome />, roles: [ROLE.SELLER] },
 
-   { label: "booksummary", href: "/seller-panel/booksummary", icon: <HiOutlineHome />, roles: [ROLE.SELLER] },
+   { label: "booksummarys", href: "/seller-panel/booksummary", icon: <HiOutlineHome />, roles: [ROLE.SELLER] },
 
    
   { label: "Category", href: "/seller-panel/listing", icon: <HiOutlineChartBar />, roles: [ROLE.SELLER] },
