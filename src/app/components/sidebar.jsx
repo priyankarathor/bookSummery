@@ -21,8 +21,8 @@ const ROLE = {
 };
 
 const menuItems = [
-  {
-    label: "Dashboard",
+  { 
+    label: "Dashboard details",
     href: "/dashboard",
     icon: <HiOutlineHome />,
     roles: [ROLE.MAIN_OWNER, ROLE.DEVELOPER, ROLE.SELLER],
